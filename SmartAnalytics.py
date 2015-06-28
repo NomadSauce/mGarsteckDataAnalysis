@@ -17,6 +17,15 @@ MEDIA_LIKES = []
 MEDIA_DATES = []
 MEDIA_TAGS = []
 
+'''
+class indUser(object):
+    def __init__(self, USER, FOLLOWERS, FOLLOWING, MEDIA):
+        self.USER = USER
+        self.FOLLOWERS = FOLLOWERS
+        self.FOLLOWING = FOLLOWING
+        self.MEDIA = MEDIA
+'''
+
 # - - - - \ ACCESS THE API WITH MY CREDENTIALS
 api = InstagramAPI(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, client_ips=CLIENT_IP, access_token=ACCESS_TOKEN)
 
@@ -24,68 +33,183 @@ api = InstagramAPI(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, client_ips=
 
 
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
-
-
-
-# - - - - \ ASSIGN API VARIABLES
-recent_media, next_ = api.user_recent_media(user_id=USER_ID, count= 5)
-user_followers, next = api.user_follows(user_id=USER_ID, count=5)
-
-# - - - - \ COMMENT THIS 'WHILE' STATEMENT OUT IF YOU WANT TO CONTROL THE COUNT
-
-while next_:
-    more_media, next_ = api.user_recent_media(with_next_url=next_)
-    recent_media.extend(more_media)
-
+print
+print
+print "---- * [ INSTAGRAM SMART ANALYTICS ] * ----"
+print
 
 
 # - - - - \ FUNCTIONS FOR GETTING TAGS ETC FOR INDIVIDUAL IMAGES, RETURNS THE LIST
-def getTags(id):
+# - - - - \ GET A LIST OF THE USERS MEDIA
+def getMedia(USER):
+    print "**** --- LOADING MEDIA"
+    print
+    userMedia, next = api.user_recent_media(user_id=USER, count=0)
+    mediaList = []
+    index = 0
+    # - - - - \ NEED TO GET THE COUNT BETTER, WORKS GOOD FOR NOW
+    while next:
+        index+=1
+        more_media, next = api.user_recent_media(with_next_url=next)
+        userMedia.extend(more_media)
+
+    for media in userMedia:
+        mediaList.append(media)
+
+    print "---- --- ", len(userMedia), " IMAGES LOADED FOR THIS USER"
+    print
+    return mediaList
+
+def getTags(MEDIA):
+
+    print "**** --- GETTING TAGS"
+    tagList = []
     try:
-        tagList = id.tags
+        print "---- --- TAGS: ", MEDIA.tags
+        tagList.append(MEDIA.tags)
     except:
         tagList = []
         return tagList
     return tagList
 
-def getLikes(id):
+def getLikes(MEDIA):
+    print "**** --- GETTING LIKES"
+    likes = api.media_likes(MEDIA.id)
+    likeList = []
     try:
-        likeList = id.likes
+        for like in likes:
+            likeList.append(like.username)
     except:
         likeList = []
         return likeList
+    print "---- --- THIS IMAGE HAS ", len(likeList), " LIKES", likeList
     return likeList
 
-def getFollowers(id):
-    user_followers, next = api.user_followed_by(user_id=USER_ID, count=25)
-    '''
-    while next:
-        more_users, next = api.user_followed_by(with_next_url=next)
-        user_followers.extend(more_users)
-    '''
+def getFollowers(USER):
     followerList = []
-    for user in user_followers:
-        followerList.append(user.username)
+    print "---- ACCESSING WHO IS FOLLOWING THE USER", USER
+    try:
+        user_followers, next = api.user_followed_by(user_id=USER, count=25)
+        while next:
+            more_users, next = api.user_followed_by(with_next_url=next)
+            user_followers.extend(more_users)
+            print user_followers
+
+        for user in user_followers:
+            followerList.append(user)
+        print "---- --- USER HAS ", len(followerList), " FOLLOWERS"
+    except:
+        return []
+
     return followerList
 
 def getFollowing(id):
+    print  "---- ACCESSING WHO THE USER FOLLOWS"
+    print
     user_following, next = api.user_follows(user_id=USER_ID, count=25)
-    '''
     while next:
         more_users, next = api.user_follows(with_next_url=next)
         user_following.extend(more_users)
-    '''
     followinglist = []
     for user in user_following:
         followinglist.append(user.username)
-    # - - - - \ ADD IN THE NEXT/WHILE LOOP TO GET ALL THE FOLLOWERS (NOT LIMITED)
+    print "---- --- USER IS FOLLOWING ", len(followinglist)
+    print
     return followinglist
 
+def getUserAnalysis(USER):
+    print "**** --- GETTING USER ANALYSIS"
+    print
+    mediaList = getMedia(USER)
+    index=0
+    for media in mediaList:
+        index+=1
+        print "**** --- MEDIA ID: ", media.id
+        print "---- --- ANALYZING IMAGE ", index, " OF", len(mediaList)
+        likesList = getLikes(media)
+        tagsList = getTags(media)
+        print
 
 
 
-#G = nx.MultiDiGraph()
+# - - - - NEED TO WORK ON THIS
+def getNetwork(USER, COUNT, NETWORKLIST):
 
+    print "**** --- ACCESSING USER NETWORK"
+    print
+    networkList = []
+    followerList = getFollowers(USER)
+    followingList = getFollowing(USER)
+
+    while COUNT > 0:
+
+        for user in followerList and followingList:
+            if user not in NETWORKLIST:
+                NETWORKLIST.append(user)
+        COUNT-=1
+        getNetwork(USER, COUNT, NETWORKLIST)
+    print "---- --- ", len(NETWORKLIST), "USERS IN THIS NETWORK."
+    return NETWORKLIST
+
+def analyzeNetwork(USER):
+
+    followersList = getFollowers(USER)
+    print "---- --- FOLLOWER LIST ", followersList
+    print
+    likeList = []
+
+
+    for follower in followersList:
+        print follower.id
+        likeList.append(getFollowers(follower.id))
+        print "---- --- ", follower, " HAS ", len(likeList), likeList
+
+    return likeList
+
+def graphMedia(USER):
+    MEDIA_LIKES = []
+    MEDIA_DATES = []
+    mediaList = getMedia(USER)
+
+    for media in mediaList:
+        MEDIA_LIKES.append(len(getLikes(media)))
+        MEDIA_DATES.append(media.created_time)
+    print "LIKE LIST LENGTH: ", len(mediaList)
+    plt.scatter(MEDIA_DATES, MEDIA_LIKES, color='red')
+    plt.show()
+
+
+# - - - - \ FINISHED
+# getMedia(USER_ID)
+#getFollowing(USER_ID)
+#getFollowers(USER_ID)
+#getTags(getMedia(USER_ID))
+#getLikes(getMedia(USER_ID))
+#getUserAnalysis(USER_ID)
+#graphMedia(USER_ID)
+
+
+# - - - - \ NEEDS TO BE FINISHED/FIXED
+#print getNetwork(USER_ID, 2, [])
+analyzeNetwork(USER_ID)
+
+
+
+
+# - - - - \ FOR TESTING
+'''
+for media in recent_media:
+
+    print getLikes(USER_ID)
+
+    MEDIA_TAGS.append(len(getTags(media.id)))
+    MEDIA_LIKES.append(len(getLikes(media.id)))
+    MEDIA_DATES.append(media.created_time)
+
+#print MEDIA_TAGS
+#print MEDIA_LIKES
+
+'''
 
 # - - - - \ CYCLE THROUGH EACH IMAGE AND EXTRACT THE DATA
 '''
@@ -111,7 +235,7 @@ for media in recent_media:
 # - - - - \ PLOTTING STUFF IS HERE
 '''
 # - - - - \ CODE FOR NX GRAPH
-
+#G = nx.MultiDiGraph()
     G.add_node(media.user)
     for i in likes:
         G.add_node(i.username)
@@ -120,25 +244,10 @@ for media in recent_media:
 # - - - - \ FOR NETWORKX
 nx.draw(G, with_labels=True)
 plt.show()
-'''
-
-for media in recent_media:
-    MEDIA_TAGS.append(len(getTags(media)))
-    MEDIA_LIKES.append(len(getLikes(media)))
-    MEDIA_DATES.append(media.created_time)
-#print MEDIA_TAGS
-print MEDIA_LIKES
-print len(likes)
 
 
 # - - - - \ FOR MATPLOTLIB
 plt.scatter(MEDIA_DATES, MEDIA_LIKES, color='red')
 plt.scatter(MEDIA_DATES, MEDIA_TAGS, color="blue")
 plt.show()
-
-
-
-
-
-
-
+'''
