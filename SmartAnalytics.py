@@ -14,21 +14,16 @@ CLIENT_SECRET = "ed9b13eb811b46ceae7718cfdbe5f2e8"
 ACCESS_TOKEN = "1334912957.e146f87.9c9168c3f4da4e54bbbb5169f9d12a25"
 CLIENT_IP = "192.168.1.79"
 USER_ID = "1334912957"
+MEDIA_ID = "1024035585946171788_1334912957"
 MEDIA_LIKES = []
 MEDIA_DATES = []
 MEDIA_TAGS = []
 
-'''
-class NewUser(object):
-    def __init__(self, USER):
-        self.USER = USER
 
-    def GET_USER_FOLLOWING(self, FOLLOWING):
 
-    def GET_USER_FOLLOWS(self, FOLLOWS):
 
-    def MEDIA_DICT(self, MEDIA):
-'''
+
+
 
 
 
@@ -47,6 +42,92 @@ print
 
 # - - - - \ FUNCTIONS FOR GETTING TAGS ETC FOR INDIVIDUAL IMAGES, RETURNS THE LIST
 # - - - - \ GET A LIST OF THE USERS MEDIA
+
+
+# - - - - \ CREATES A MEDIA OBJECT
+class MediaObject(object):
+    def __init__(self, MEDIA):
+        self.MEDIA = MEDIA
+
+    def MEDIA_LIKES(self):
+        LIKES = api.media_likes(self.MEDIA)
+        LIKE_LIST = []
+        print "---- ---- LIKE LIST FOR THIS IMAGE: ", LIKES
+        print
+        return LIKES
+
+    def MEDIA_COMMENTS(self):
+        pass
+    def MEDIA_TAGS(self):
+        pass
+
+med1 = MediaObject("1024035585946171788_1334912957")
+print med1.MEDIA_LIKES()
+
+# - - - - \ CREATES A USER OBJECT.
+class NewUser(object):
+    def __init__(self, USER):
+        self.USER = USER
+
+
+    def MEDIA_LIST(self):
+        print "==== ==== LOADING MEDIA ... .. ."
+        mediaList = []
+        MEDIA_LIST = []
+        mediaList, next = api.user_recent_media(user_id=self.USER, count=0)
+        while next:
+            more_media, next = api.user_recent_media(with_next_url=next)
+            mediaList.extend(more_media)
+        for media in mediaList:
+            MEDIA_LIST.append(MediaObject(media.id).MEDIA_LIKES())
+
+        print "HERE IS THE MEDIA LIST: ", MEDIA_LIST
+        print "---- ---- ", len(mediaList), " IMAGES LOADED"
+        print " - " * 50
+        print
+        return mediaList
+
+# - - - - \ GETS THE LIST OF WHO THE USER IS FOLLOWING
+    def USER_FOLLOWING(self):
+        print "==== ==== ACCESSING USER FOLLOWING ... .. ."
+        followingList = []
+        followingList, next = api.user_follows(user_id=self.USER, count=0)
+        while next:
+            more_users, next = api.user_follows(with_next_url=next)
+            followingList.extend(more_users)
+        print "---- ---- USER IS FOLLOWING ", len(followingList)
+        print " - " * 50
+        print
+        return followingList
+
+# - - - - \ GETS THE LIST OF WHO FOLLOWS THE USER
+    def USER_FOLLOWERS(self):
+        print "==== ==== ACCESSING WHO FOLLOWS USER ... .. ."
+        followsList = []
+        try:
+            followsList, next = api.user_followed_by(user_id=self.USER, count=0)
+
+            while next:
+                more_users, next = api.user_followed_by(with_next_url=next)
+                followsList.extend(more_users)
+        except InstagramAPIError as e:
+            if (e.status_code == 400):
+                print "\nUser is set to Private"
+                return []
+        print "USER HAS ", len(followsList), " FOLLOWERS"
+        print " - " * 50
+        print
+        return followsList
+
+    def USER_INITIALIZE(self):
+        pass
+
+
+mGar = NewUser(USER_ID)
+mGar.MEDIA_LIST()
+# mGar.USER_FOLLOWING()
+# mGar.USER_FOLLOWERS()
+
 def getMedia(USER):
     print "**** --- LOADING MEDIA"
     print
@@ -200,6 +281,7 @@ def nodeNetwork(USER):
     nx.draw(G, with_labels=True)
     plt.show()
 
+
 def topRelationships(USER):
     print "---- ---- ANALYZING TOP RELATIONSHIPS"
     MEDIA_LIST = getMedia(USER)
@@ -215,10 +297,24 @@ def topRelationships(USER):
         print "**** **** MEDIA DICT: ", MEDIA_DICT
         print
 
-    plt.bar(range(len(MEDIA_DICT)), MEDIA_DICT.values(), align="center")
-    plt.xticks(range(len(MEDIA_DICT)), MEDIA_DICT.keys(), rotation='vertical')
-    plt.show()
+    # - - - - \ SORTING A DICTIONARY
+    values = MEDIA_DICT.values()
+    values.sort()
+    print "---- --- TOP 10 USERS: "
 
+    for n in range(10):
+        print values[-n - 1]
+    '''
+    for n in range(11):
+        for user, likes in MEDIA_DICT.items():
+            if likes == values[-n]:
+                print " ---- USER: ", user, " | IMAGES LIKED: ", likes
+
+
+    # plt.bar(range(len(MEDIA_DICT)), MEDIA_DICT.values(), align="center")
+    # plt.xticks(range(len(MEDIA_DICT)), MEDIA_DICT.keys(), rotation='vertical')
+    plt.show()
+    '''
 
 
 # - - - - \ FINISHED
@@ -236,43 +332,33 @@ def topRelationships(USER):
 #print getNetwork(USER_ID, 2, [])
 #analyzeNetwork(USER_ID)
 
-topRelationships(USER_ID)
+#topRelationships(USER_ID)
 
 
 # - - - - \ FOR TESTING
 '''
 for media in recent_media:
-
     print getLikes(USER_ID)
-
     MEDIA_TAGS.append(len(getTags(media.id)))
     MEDIA_LIKES.append(len(getLikes(media.id)))
     MEDIA_DATES.append(media.created_time)
-
 #print MEDIA_TAGS
 #print MEDIA_LIKES
-
 '''
 
 # - - - - \ CYCLE THROUGH EACH IMAGE AND EXTRACT THE DATA
 '''
 for media in recent_media:
-
     likes = api.media_likes(media.id)
-
     MEDIA_LIKES.append(len(likes))
     MEDIA_DATES.append(media.created_time)
-
     print "AnalyzingImage # " + str(len(MEDIA_LIKES)) + " OF " + str(len(recent_media))
     print "Media: ", media.link, " has "
     print len(getFollowers(1334912957))
-
     #print MEDIA_LIKES
     #print "# of Likes: ", len(likes)
     #print "Date of Picture: ", media.created_time
-
     print
-
 '''
 
 # - - - - \ PLOTTING STUFF IS HERE
@@ -283,12 +369,9 @@ for media in recent_media:
     for i in likes:
         G.add_node(i.username)
         G.add_edge(media.user, i.username)
-
 # - - - - \ FOR NETWORKX
 nx.draw(G, with_labels=True)
 plt.show()
-
-
 # - - - - \ FOR MATPLOTLIB
 plt.scatter(MEDIA_DATES, MEDIA_LIKES, color='red')
 plt.scatter(MEDIA_DATES, MEDIA_TAGS, color="blue")
