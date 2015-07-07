@@ -3,6 +3,7 @@ _author__ = 'mGarsteck'
 # - - - - \ IMPORT STATEMENTS
 from instagram.client import InstagramAPI
 import matplotlib.pyplot as plt
+from instagram.bind import InstagramAPIError
 import matplotlib.dates
 import numpy as np
 import networkx as nx
@@ -11,20 +12,25 @@ import networkx as nx
 CLIENT_ID = "e146f87ef0a440f39fcd670731b12782"
 CLIENT_SECRET = "ed9b13eb811b46ceae7718cfdbe5f2e8"
 ACCESS_TOKEN = "1334912957.e146f87.9c9168c3f4da4e54bbbb5169f9d12a25"
-CLIENT_IP = "192.168.1.79."
+CLIENT_IP = "192.168.1.79"
 USER_ID = "1334912957"
 MEDIA_LIKES = []
 MEDIA_DATES = []
 MEDIA_TAGS = []
 
 '''
-class indUser(object):
-    def __init__(self, USER, FOLLOWERS, FOLLOWING, MEDIA):
+class NewUser(object):
+    def __init__(self, USER):
         self.USER = USER
-        self.FOLLOWERS = FOLLOWERS
-        self.FOLLOWING = FOLLOWING
-        self.MEDIA = MEDIA
+
+    def GET_USER_FOLLOWING(self, FOLLOWING):
+
+    def GET_USER_FOLLOWS(self, FOLLOWS):
+
+    def MEDIA_DICT(self, MEDIA):
 '''
+
+
 
 # - - - - \ ACCESS THE API WITH MY CREDENTIALS
 api = InstagramAPI(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, client_ips=CLIENT_IP, access_token=ACCESS_TOKEN)
@@ -93,13 +99,14 @@ def getFollowers(USER):
         while next:
             more_users, next = api.user_followed_by(with_next_url=next)
             user_followers.extend(more_users)
-            print user_followers
 
         for user in user_followers:
             followerList.append(user)
         print "---- --- USER HAS ", len(followerList), " FOLLOWERS"
-    except:
-        return []
+    except InstagramAPIError as e:
+        if (e.status_code == 400):
+            print "\nUser is set to Private"
+            return []
 
     return followerList
 
@@ -155,14 +162,19 @@ def analyzeNetwork(USER):
 
     followersList = getFollowers(USER)
     print "---- --- FOLLOWER LIST ", followersList
-    print
     likeList = []
+    print
 
-
+    index = 0
     for follower in followersList:
-        print follower.id
-        likeList.append(getFollowers(follower.id))
-        print "---- --- ", follower, " HAS ", len(likeList), likeList
+        index+=1
+        print "FOLLOWER ", index, " of ", len(followersList)
+        print follower, follower.id
+        print getFollowers(follower.id)
+
+        #likeList.append(getFollowers(follower.id))
+        #print "---- --- ", follower, " HAS ", len(likeList), likeList
+        print
 
     return likeList
 
@@ -178,6 +190,36 @@ def graphMedia(USER):
     plt.scatter(MEDIA_DATES, MEDIA_LIKES, color='red')
     plt.show()
 
+def nodeNetwork(USER):
+    FOLLOWER_LIST = getFollowers(USER)
+    G = nx.MultiDiGraph()
+    G.add_node(USER)
+    for follower in FOLLOWER_LIST:
+        G.add_node(follower.username)
+        G.add_edge(USER, follower.username)
+    nx.draw(G, with_labels=True)
+    plt.show()
+
+def topRelationships(USER):
+    print "---- ---- ANALYZING TOP RELATIONSHIPS"
+    MEDIA_LIST = getMedia(USER)
+    MEDIA_LIKES = []
+    MEDIA_DICT = {}
+    for media in MEDIA_LIST:
+        MEDIA_LIKES = getLikes(media)
+        for like in MEDIA_LIKES:
+            if like not in MEDIA_DICT:
+                MEDIA_DICT[like] = 1
+            else:
+                MEDIA_DICT[like] +=1
+        print "**** **** MEDIA DICT: ", MEDIA_DICT
+        print
+
+    plt.bar(range(len(MEDIA_DICT)), MEDIA_DICT.values(), align="center")
+    plt.xticks(range(len(MEDIA_DICT)), MEDIA_DICT.keys(), rotation='vertical')
+    plt.show()
+
+
 
 # - - - - \ FINISHED
 # getMedia(USER_ID)
@@ -187,13 +229,14 @@ def graphMedia(USER):
 #getLikes(getMedia(USER_ID))
 #getUserAnalysis(USER_ID)
 #graphMedia(USER_ID)
+#nodeNetwork(USER_ID)
 
 
 # - - - - \ NEEDS TO BE FINISHED/FIXED
 #print getNetwork(USER_ID, 2, [])
-analyzeNetwork(USER_ID)
+#analyzeNetwork(USER_ID)
 
-
+topRelationships(USER_ID)
 
 
 # - - - - \ FOR TESTING
